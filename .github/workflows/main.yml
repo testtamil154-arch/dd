@@ -62,7 +62,7 @@ jobs:
           find out -name "*.rej" -exec cp --parents {} logs/ \; 2>/dev/null || true
           find out -name "*.orig" -exec cp --parents {} logs/ \; 2>/dev/null || true
 
-      - name: Upload kernel
+      - name: Upload kernel artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -79,3 +79,28 @@ jobs:
           name: build-logs
           if-no-files-found: ignore
           path: logs/
+
+      - name: Upload memkernel.ko to another repository
+        if: always()
+        env:
+          TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          if [ ! -f "./out/drivers/memkernel/memkernel.ko" ]; then
+            echo "memkernel.ko not found."
+            exit 0
+          fi
+
+          git clone https://x-access-token:${TOKEN}@github.com/testtamil154-arch/dd.git upload
+
+          mkdir -p upload/modules
+
+          cp ./out/drivers/memkernel/memkernel.ko upload/modules/
+
+          cd upload
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+
+          git add modules/memkernel.ko
+          git commit -m "Upload memkernel.ko - $(date '+%Y-%m-%d %H:%M:%S')" || true
+          git push
