@@ -811,10 +811,10 @@ static int qrtr_node_enqueue(struct qrtr_node *node, struct sk_buff *skb,
 	else
 		rc = skb_put_padto(skb, ALIGN(len, 4) + sizeof(*hdr));
 
-	if (rc) {
-		pr_err("%s: failed to pad size %u to %u rc:%d\n", __func__,
-		       skb->len, ALIGN(skb->len, 4), rc);
-	}
+if (rc) {
+    pr_err("%s: failed to pad size %u to %u rc:%d\n", __func__,
+           skb->len, ALIGN(skb->len, 4), rc);
+}
 
 	if (!rc) {
 		mutex_lock(&node->ep_lock);
