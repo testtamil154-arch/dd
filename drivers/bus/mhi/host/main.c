@@ -837,7 +837,7 @@ static void mhi_process_cmd_completion(struct mhi_controller *mhi_cntrl,
 	cmd_pkt = mhi_to_virtual(mhi_ring, ptr);
 
 	if (cmd_pkt != mhi_ring->rp)
-		panic("Out of order cmd completion: %p. Expected: %p\n",
+		panic("Out of order cmd completion: %px. Expected: %px\n",
       cmd_pkt, mhi_ring->rp);
 
 	if (MHI_TRE_GET_CMD_TYPE(cmd_pkt) == MHI_CMD_SFR_CFG) {
