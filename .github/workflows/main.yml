@@ -6,29 +6,76 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout kernel source
-      uses: actions/checkout@v4
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
 
-    - name: Set up MemKernel as a module (M-OUT) with specified name
-      run: |
-        curl -LSs "https://github.com/workoffice008/MemKernel/raw/refs/heads/main/kernel/setup.sh" | bash -s M dogi
+      - name: Set up MemKernel as a module (M-OUT) with specified name
+        run: |
+          curl -LSs "https://github.com/workoffice008/MemKernel/raw/refs/heads/main/kernel/setup.sh" | bash -s M dogi
 
-    - name: Android kernel build
-      uses: lemniskett/android-kernel-actions@master
-      id: build
-      env:
-        NAME: Loganysl
-      with:
-        arch: arm64
-        compiler: gcc/12
-        defconfig: defconfig
-        image: Image.gz-dtb
+      - name: Android kernel build
+        id: build
+        continue-on-error: true
+        uses: lemniskett/android-kernel-actions@master
+        env:
+          NAME: Loganysl
+        with:
+          arch: arm64
+          compiler: gcc/12
+          defconfig: defconfig
+          image: Image.gz-dtb
 
-    - name: my kernel
-      uses: actions/upload-artifact@v4
-      with:
-        name: module
-        path: |
-          ${{ steps.build.outputs.outfile }}
-          ./out/drivers/memkernel/memkernel.ko
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p logs
+
+          echo "========== SYSTEM ==========" > logs/system.txt
+          uname -a >> logs/system.txt || true
+
+          echo "" >> logs/system.txt
+          echo "========== GCC ==========" >> logs/system.txt
+          gcc --version >> logs/system.txt 2>&1 || true
+
+          echo "" >> logs/system.txt
+          echo "========== CLANG ==========" >> logs/system.txt
+          clang --version >> logs/system.txt 2>&1 || true
+
+          echo "" >> logs/system.txt
+          echo "========== ENV ==========" >> logs/system.txt
+          env >> logs/system.txt
+
+          cp out/.config logs/ 2>/dev/null || true
+          cp out/.config.old logs/ 2>/dev/null || true
+          cp out/.version logs/ 2>/dev/null || true
+
+          find . -type f \( \
+            -name "*.log" -o \
+            -name "*.txt" -o \
+            -name "*.cmd" -o \
+            -name "*.lst" -o \
+            -name "*.o.cmd" \
+          \) -exec cp --parents {} logs/ \; 2>/dev/null || true
+
+          find out -name "*.rej" -exec cp --parents {} logs/ \; 2>/dev/null || true
+          find out -name "*.orig" -exec cp --parents {} logs/ \; 2>/dev/null || true
+
+      - name: Upload kernel
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel
+          if-no-files-found: ignore
+          path: |
+            ${{ steps.build.outputs.outfile }}
+            ./out/drivers/memkernel/memkernel.ko
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          if-no-files-found: ignore
+          path: logs/
